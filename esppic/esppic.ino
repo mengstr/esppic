@@ -1,9 +1,9 @@
 //
-// esppic - An ESP8266-bsed Microchip PIC programmer
-// Copyright 2016 Mats Engstrom SmallRoomLabs
+// esppic - An ESP8266-based Microchip PIC programmer
+// Project located at github.com/SmallRoomLabs/esppic
+// Copright (c) 2016 Mats Engstrom SmallRoomLabs
 // Released under the MIT license
 //
-
 
 #define SWAP16(x) (((x & 0x00ff) << 8) | ((x & 0xff00) >> 8))
 
