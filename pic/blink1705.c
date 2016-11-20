@@ -40,11 +40,8 @@ void main() {
   TRISA=0;		// Set all pins as outputs
   TRISC=0;
   for (;;) {		  // Flash 50mS pulses at 1Hz to show some activity
-    LATA=0xFF;
-    LATC=0xFF;
-    __delay_ms(50);
-    LATA=0x00;
-    LATC=0x00;
-    __delay_ms(950); 
+    LATA=rand();
+    LATC=rand();
+    __delay_ms(200);
   }
 }
