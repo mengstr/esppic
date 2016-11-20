@@ -6,7 +6,7 @@ if [ "$1" == "" ]; then
 	exit 1
 fi
 
-echo const char $(echo $1 | tr '.' '_')\[\] PROGMEM =
+echo const char $(basename $1 | tr '.' '_')\[\] PROGMEM =
 
 cat $1 | \
 	xxd -i -c 32 | \

@@ -4,6 +4,13 @@
 // Copright (c) 2016 Mats Engstrom SmallRoomLabs
 // Released under the MIT license
 //
+#include <ESP8266WiFi.h>
+#include <WiFiClient.h>
+#include <ESP8266WebServer.h>
+#include <FS.h>
+
+const char* ssid = "TANGMOHOME";
+const char* password = "3334932015";
 
 #define SWAP16(x) (((x & 0x00ff) << 8) | ((x & 0xff00) >> 8))
 
@@ -37,7 +44,14 @@
 #define RESET_LOW   digitalWrite(PIN_RESET, LOW)
 #define RESET_HIGH  digitalWrite(PIN_RESET, HIGH)
 
+#include "index_html.h"
+#include "upload_html.h"
+#include "favicon_ico.h"
+#include "logo_png.h"
+
 uint16_t currentAddress;
+ESP8266WebServer server(80);
+
 
 
 // Some hardcoded firmware to upload to the PIC for testing
@@ -88,6 +102,68 @@ char *getline(void) {
 }
 
 
+File UploadFile;
+String filename;
+File fsUploadFile;
+String webString;
+
+//
+//
+//
+void handleNotFound(){
+  Serial.println("handlNotFound()");
+}
+
+//void handleFileUpload() {
+//    server.onFileUpload([]() {
+//    Serial.println("onFileUpload()");
+//    HTTPUpload& upload = server.upload();
+//    switch (upload.status) {
+//      case UPLOAD_FILE_START:
+//        Serial.println("UPLOAD_FILE_START");
+//        filename = upload.filename;
+//        Serial.print("Upload Name: "); 
+//        Serial.println(filename);
+//        UploadFile = SPIFFS.open("/" + filename, "w");
+//        break;
+//      case UPLOAD_FILE_WRITE:
+//        Serial.println("UPLOAD_FILE_WRITE");
+//          if (UploadFile) UploadFile.write(upload.buf, upload.currentSize);
+//          break;
+//      case UPLOAD_FILE_END:
+//        Serial.println("UPLOAD_FILE_END");
+//        if (UploadFile) UploadFile.close();
+//        break;
+//    } //switch
+//  });
+//
+//}
+
+
+
+void handleFileUpload() {
+  Serial.println("handleFileUpload()"); 
+  if(server.uri() != "/upload") return;
+  HTTPUpload& upload = server.upload();
+  if(upload.status == UPLOAD_FILE_START){
+    String filename = upload.filename;
+    filename = "/payloads/"+filename;
+    Serial.print("Uploading file "); 
+    Serial.print(filename+" ... ");
+    fsUploadFile = SPIFFS.open(filename, "w");
+    filename = String();
+  }
+  else if(upload.status == UPLOAD_FILE_WRITE){
+    if(fsUploadFile)
+    fsUploadFile.write(upload.buf, upload.currentSize);
+  }
+  else if(upload.status == UPLOAD_FILE_END){
+    if(fsUploadFile)
+    fsUploadFile.close();
+    Serial.println("Success");
+  }
+}
+
 
 
 //
@@ -102,7 +178,77 @@ void setup() {
   CLK_LOW;
 
   Serial.begin(115200);
-  Serial.println("\n\n\npicflasher v0.1 starting\n");
+  Serial.println("\n\n\nESPPIC v0.2 starting\n");
+  SPIFFS.begin();
+
+  WiFi.mode(WIFI_AP_STA);
+  Serial.printf("Connecting to wifi using %s/%s\n",ssid,password);
+  WiFi.begin(ssid, password);
+  while(WiFi.status()!=WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.print("\nConnected with IP ");
+  Serial.println(WiFi.localIP());
+
+  server.begin();
+
+  server.on("/", HTTP_GET, []() {
+    Serial.println("HTTP_GET /");
+    server.send_P(200,"text/html", index_html);
+  });
+
+  server.on("/upload", HTTP_POST, []() {
+    server.send(200, "text/html", "<a href=\"/\"><- BACK TO INDEX</a><br><br>Upload Successful!<br><br><a href=\"/listpayloads\">List Payloads</a>");
+  },handleFileUpload);
+
+  server.on("/favicon.ico", HTTP_GET, []() {
+    Serial.println("HTTP_GET /favicon.ico");
+    server.send_P(200, "image/x-icon", favicon_ico, sizeof(favicon_ico));
+  });
+
+  server.on("/logo.png", HTTP_GET, []() {
+    Serial.println("HTTP_GET /logo.png");
+    server.sendHeader("Cache-Control", "public,max-age:86400");
+    server.send_P(200, "image/png", logo_png, sizeof(logo_png));
+  });
+
+  server.on("/readconfigs", HTTP_GET, []() {
+    Serial.println("HTTP_GET /readconfig");
+    char *html=(char *)malloc(10000);
+    char tmps[1000];
+    EnterLVPmode();
+    CmdResetAddress();
+    DumpConfig(tmps);
+    RESET_HIGH;
+    strcpy(html,"<h1>CONFIG AREAS</h1><tt>");
+    strcat(html,tmps);
+    strcat(html,"</tt>");
+    server.send(200, "text/html", html);
+    free(html);
+  });
+
+  server.on("/flash", HTTP_GET, []() {
+    Serial.println("HTTP_GET /flash");
+    char *html=(char *)malloc(10000);
+    EnterLVPmode();
+    CmdResetAddress();
+    CmdLoadConfig(0x00);
+    CmdBulkErase();
+    Store(USERID+0,SWAP16(0x8031)); delay(5);
+    Store(USERID+1,SWAP16(0x0228)); delay(5);
+    Store(USERID+2,SWAP16(0x8731)); delay(5);
+    Store(USERID+3,SWAP16(0xE12F)); delay(5);
+    Store(CONFIG1, SWAP16(0xE4C9)); delay(5);
+    Store(CONFIG2, SWAP16(0xFBFF)); delay(5);
+    RESET_HIGH;
+    strcpy(html,"<h1>FLASH DONE</h1><a href=\"/\">Back</a>");
+    server.send(200, "text/html", html);
+    free(html);
+  });
+
+  
+  server.onNotFound(handleNotFound);
 }
 
 
@@ -208,6 +354,31 @@ void PrintBinary16(uint16_t data) {
   Serial.print(tmp);
 }
 
+//
+//
+//
+void ToBinary16(char *tmp, uint16_t data) {
+  tmp[0]=(data&0x8000?'1':'0');
+  tmp[1]=(data&0x4000?'1':'0');
+  tmp[2]=(data&0x2000?'1':'0');
+  tmp[3]=(data&0x1000?'1':'0');
+  tmp[4]=' ';
+  tmp[5]=(data&0x800?'1':'0');
+  tmp[6]=(data&0x400?'1':'0');
+  tmp[7]=(data&0x200?'1':'0');
+  tmp[8]=(data&0x100?'1':'0');
+  tmp[9]=' ';
+  tmp[10]=(data&0x80?'1':'0');
+  tmp[11]=(data&0x40?'1':'0');
+  tmp[12]=(data&0x20?'1':'0');
+  tmp[13]=(data&0x10?'1':'0');
+  tmp[14]=' ';
+  tmp[15]=(data&0x8?'1':'0');
+  tmp[16]=(data&0x4?'1':'0');
+  tmp[17]=(data&0x2?'1':'0');
+  tmp[18]=(data&0x1?'1':'0');
+  tmp[19]=0;
+}
 
 //
 // Clock out data to the PIC. The "bits" argument
@@ -367,8 +538,10 @@ void DumpMemory(void) {
 // Dump the CONFIG memory parts of the PIC onto the 
 // serial line for debugging 
 //
-void DumpConfig() {
+void DumpConfig(char *buf) {
   uint16_t data[16];
+  char bin1[20];
+  char bin2[20];
 
   CmdLoadConfig(0x00);
   CmdReadData(data,16);
@@ -377,6 +550,24 @@ void DumpConfig() {
   Serial.print("CONFIG1: "); PrintHex16(&data[CONFIG1],1); Serial.print(" ("); PrintBinary16(data[7]); Serial.println(")");
   Serial.print("CONFIG2: "); PrintHex16(&data[CONFIG2],1); Serial.print(" ("); PrintBinary16(data[8]); Serial.println(")");
   Serial.print("USER ID: "); PrintHex16(&data[USERID],4); Serial.println();
+  
+  ToBinary16(bin1,data[CONFIG1]);
+  ToBinary16(bin2,data[CONFIG2]);
+  sprintf(buf,
+    "DEV ID : %04x<br/>"
+    "DEV REV: %04x<br/>"
+    "CONFIG1: %04x (%s)<br/>"
+    "CONFIG2: %04x (%s)<br/>"
+    "USER ID: %04x %04x %04x %04x<br/>",
+    data[DEVID],
+    data[DEVREV],
+    data[CONFIG1], bin1,
+    data[CONFIG2], bin2,
+    data[USERID+0],data[USERID+1],data[USERID+2],data[USERID+3]
+    );
+    
+    
+
 }
 
 
@@ -398,7 +589,7 @@ void Store(uint16_t address, uint16_t data) {
 //
 // The main code that does the stuff ^__^
 //
-void loop() {
+void flash_gordon() {
   uint16_t data[32];
   uint16_t a;
   uint8_t d_len;
@@ -441,7 +632,7 @@ void loop() {
   // Dump the CONFIGs and the CODE areas onto serial
   // for debugging
   CmdResetAddress();
-  DumpConfig();
+//  DumpConfig();
   CmdResetAddress();
   DumpMemory();
 
@@ -451,3 +642,14 @@ void loop() {
   RESET_HIGH;
   for (;;) delay(1);
 }
+
+
+
+//
+// Run the webserver handler in a continous loop
+//
+void loop(void) {
+  server.handleClient();
+  delay(10);
+}
+
