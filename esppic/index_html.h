@@ -18,7 +18,7 @@ const char index_html[] PROGMEM = R"=====(
 </head>
 
 <body>
-<img src="logo.png">
+<img src="/logo.png">
 <form method="POST" action="/upload" enctype="multipart/form-data">
 Device:<select name="device">
 <option value="16F1705" selected>PIC16F1705</option>
@@ -32,6 +32,9 @@ Hex file:<input type="file" name="filename" accept=".hex" />
 <br/>
 <a href="/readconfigs">Read config areas</a><br/>
 <a href="/flash">Flash</a><br/>
+Target control: <a href="/reset/yes">Reset</a>&nbsp; 
+<a href="/reset/no">Run</a>&nbsp
+<a href="/reset/pulse">Reboot</a><br/>
 
 </body>
 </html> 
