@@ -102,10 +102,10 @@ char *getline(void) {
 }
 
 
-File UploadFile;
+//File UploadFile;
 String filename;
 File fsUploadFile;
-String webString;
+//String webString;
 
 //
 //
@@ -142,16 +142,15 @@ void handleNotFound(){
 
 
 void handleFileUpload() {
-  Serial.println("handleFileUpload()"); 
   if(server.uri() != "/upload") return;
+  Serial.println("handleFileUpload()"); 
   HTTPUpload& upload = server.upload();
   if(upload.status == UPLOAD_FILE_START){
-    String filename = upload.filename;
+    filename = upload.filename;
     filename = "/payloads/"+filename;
     Serial.print("Uploading file "); 
-    Serial.print(filename+" ... ");
+    Serial.println(filename);
     fsUploadFile = SPIFFS.open(filename, "w");
-    filename = String();
   }
   else if(upload.status == UPLOAD_FILE_WRITE){
     if(fsUploadFile)
@@ -213,6 +212,26 @@ void setup() {
     server.send_P(200, "image/png", logo_png, sizeof(logo_png));
   });
 
+  server.on("/reset/yes", HTTP_GET, []() {
+    Serial.println("HTTP_GET /reset/yes");
+    RESET_LOW;
+    server.send_P(200,"text/html", index_html);
+  });
+
+  server.on("/reset/no", HTTP_GET, []() {
+    Serial.println("HTTP_GET /reset/no");
+    RESET_HIGH;
+    server.send_P(200,"text/html", index_html);
+  });
+  
+  server.on("/reset/pulse", HTTP_GET, []() {
+    Serial.println("HTTP_GET /reset/pulse");
+    RESET_LOW;
+    delay(100);
+    RESET_HIGH;
+    server.send_P(200,"text/html", index_html);
+  });
+  
   server.on("/readconfigs", HTTP_GET, []() {
     Serial.println("HTTP_GET /readconfig");
     char *html=(char *)malloc(10000);
@@ -220,6 +239,7 @@ void setup() {
     EnterLVPmode();
     CmdResetAddress();
     DumpConfig(tmps);
+    DumpMemory();
     RESET_HIGH;
     strcpy(html,"<h1>CONFIG AREAS</h1><tt>");
     strcat(html,tmps);
@@ -241,6 +261,34 @@ void setup() {
     Store(USERID+3,SWAP16(0xE12F)); delay(5);
     Store(CONFIG1, SWAP16(0xE4C9)); delay(5);
     Store(CONFIG2, SWAP16(0xFBFF)); delay(5);
+
+    // CODE
+
+    Serial.print("Trying to open ");
+    Serial.println(filename);
+    File f = SPIFFS.open(filename, "r");
+    if (!f) {
+      Serial.print("Couldn't open ");
+      Serial.println(filename);
+    }
+    while(f.available()) {
+      uint8_t d_len;
+      uint16_t d_addr;
+      uint8_t d_typ;
+      String s = f.readStringUntil('\n');
+      Serial.println(s);
+      d_len=HexDec2(s[1],s[2]);
+      d_addr=HexDec4(s[3],s[4],s[5],s[6]);
+      d_typ=HexDec2(s[7],s[8]);
+      Serial.printf("len=%02x addres=%04x type=%02x\n",d_len,d_addr,d_typ);
+      if (d_typ==0x00) {
+        for (uint8_t i=0; i<d_len*2; i+=4) {              
+          Store(d_addr/2+i/4,HexDec4(s[11+i],s[12+i],s[9+i],s[10+i]));
+        }
+      }
+    }
+    f.close();
+  
     RESET_HIGH;
     strcpy(html,"<h1>FLASH DONE</h1><a href=\"/\">Back</a>");
     server.send(200, "text/html", html);
