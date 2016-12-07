@@ -16,3 +16,5 @@
 *.lst
 *.obj
 *.rlf
+/pic/bug.X/nbproject/private/
+/pic/xmas.X/nbproject/private/

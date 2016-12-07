@@ -1,0 +1,174 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<style>
+    body {
+        background-color:#494949;
+        color:#fff;
+        margin:0px;
+    }
+    .item {
+        height:40px;
+        border:1px solid rgba(255,255,255,0.2);
+        border-radius: 10px;
+        padding:0;
+        margin:0;
+    }
+    .item1 {width:45px;}
+    .item2 {width:95px;}
+    .item3 {width:145px;}
+    .item4 {width:190px;}
+    .item5 {width:240px;}
+
+
+    .item8>canvas {
+        width:200px;
+        height:30px;
+        position: relative;
+        top: -6px;
+    }
+    legend {
+        font-size: 60%;
+    }
+</style>
+
+<script>
+
+function Draw1DigitLayer(canvas, v, xo,yo, c) {
+    var x=3+xo, y=3+yo;
+    var linewidth=4;
+    var height=12;
+    var width=13;
+
+    var ctx = canvas.getContext('2d');
+    ctx.lineCap = 'round';
+
+    ctx.beginPath();                
+    ctx.strokeStyle = c;
+    ctx.lineWidth = linewidth;
+
+    if (v&0x01) {
+        ctx.moveTo(x,       y);            // SEG A
+        ctx.lineTo(x+width, y);
+    }
+
+    if (v&0x02) {
+        ctx.moveTo(x+width, y);            // SEG B
+        ctx.lineTo(x+width, y+height*1);
+    }
+
+    if (v&0x04) {
+        ctx.moveTo(x+width, y+height*1);   // SEG C
+        ctx.lineTo(x+width, y+height*2);
+    }
+
+    if (v&0x08) {
+        ctx.moveTo(x,       y+height*2);   // SEG D
+        ctx.lineTo(x+width, y+height*2);
+    }
+
+    if (v&0x10) {
+        ctx.moveTo(x,       y+height*1);   // SEG E
+        ctx.lineTo(x,       y+height*2);
+    }
+
+    if (v&0x20) {
+        ctx.moveTo(x,       y);            // SEG F
+        ctx.lineTo(x,       y+height*1);
+    }
+
+    if (v&0x40) {
+        ctx.moveTo(x,       y+height*1);   // SEG G
+        ctx.lineTo(x+width, y+height*1);
+    }
+
+    ctx.stroke();
+
+    if (v&0x80) {
+        ctx.beginPath();                   // SEG DP
+        ctx.lineWidth=1;
+        ctx.fillStyle = c;
+        ctx.arc(x+width*1.4, y+height*2, 2, 0, 2*Math.PI, false);
+        ctx.fill();
+    }
+}
+
+function Draw1Digit(canvas, v, xo,yo) {
+    Draw1DigitLayer(canvas, ~v, xo,yo, "#705050");
+    Draw1DigitLayer(canvas, v, xo,yo, "red");
+}
+
+//
+// Create a 8-digit 7-segment MAX7219 display module
+//      i   : Number of the display
+//      txt : The text shown by the legend element
+//      x   : x position relative to body
+//      y   : y position relative to body
+//
+function CreateDisplay(i,txt,siz,x,y) {
+    var myDisplay = document.createElement('fieldset');
+    if (siz==1) myDisplay.setAttribute('class','item item1');
+    if (siz==2) myDisplay.setAttribute('class','item item2');
+    if (siz==3) myDisplay.setAttribute('class','item item3');
+    if (siz==4) myDisplay.setAttribute('class','item item4');
+    myDisplay.style.position='absolute';
+    myDisplay.style.left=x+'px';
+    myDisplay.style.top=y+'px';  
+    //
+    legend=document.createElement('legend');
+    legend.innerHTML=txt;
+    myDisplay.appendChild(legend);
+    //
+    document.body.appendChild(myDisplay);
+    return;
+
+
+    canvas=document.createElement('canvas');
+    canvas.setAttribute('id','display'+i);
+    canvas.setAttribute('width','200');
+    canvas.setAttribute('height','30');
+    myDisplay.appendChild(canvas);
+    //
+    document.body.appendChild(myDisplay);
+
+    for (var i=0; i<8; i++) {
+        Draw1Digit(canvas, 0xff, i*25,0);
+    }
+
+    // var d = new Max7219('display'+i);
+    // d.draw();
+    return;
+}
+</script>
+    
+</head>
+<body>
+<div style="position:fixed;width:200px;height:50px;top:0px ;left:0px; border:0px yellow dotted;"</div>
+
+<div style="position:fixed;width:50px;height:50px;top:50px;left:0px; border:0px yellow dotted;"</div>
+<div style="position:fixed;width:150px;height:50px;top:50px;left:50px; border:0px yellow dotted;"</div>
+
+<div style="position:fixed;width:100px;height:50px;top:100px;left:0px; border:0px yellow dotted;"</div>
+<div style="position:fixed;width:100px;height:50px;top:100Px;left:100px; border:0px yellow dotted;"</div>
+
+<div style="position:fixed;width:150px; height:50px;top:150px;left:0px; border:0px yellow dotted;"</div>
+<div style="position:fixed;width:50px; height:50px;top:150px;left:150px; border:0px yellow dotted;"</div>
+
+<div style="position:fixed;width:50px; height:200px;top:0px;left:200px; border:0px yellow dotted;"</div>
+
+</body>
+
+<script>
+    CreateDisplay(0,"A",4, 0,0);
+
+    CreateDisplay(1,"B1",1, 0,50);
+    CreateDisplay(2,"B2",3, 50,50);
+
+    CreateDisplay(3,"C1",2, 0,100);
+    CreateDisplay(4,"C2",2, 100,100);
+
+    CreateDisplay(5,"D1",3, 0,150);
+    CreateDisplay(6,"D2",1, 150,150);
+</script>
+  
+</html>

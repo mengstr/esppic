@@ -1,0 +1,332 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<style>
+    body {
+        background-color:#494949;
+        color:#fff;
+        margin:0px;
+    }
+    .brdr {
+        position:fixed;
+        Xborder:1px yellow dotted;
+        padding:0;
+        margin:0;
+    }
+    .item {
+        background-color:#333;
+        border:1px solid rgba(255,255,255,0.2);
+        border-radius: 5px;
+        padding:0;
+        margin:0;
+    }
+
+
+    .item8>canvas {
+        width:200px;
+        height:30px;
+        position: relative;
+        top: -6px;
+    }
+    legend {
+        font-size: 60%;
+    }
+</style>
+
+<script>
+"use strict";
+
+Max7219.Nop       = 0x00;
+Max7219.Digit0    = 0x01;
+Max7219.Digit1    = 0x02;
+Max7219.Digit2    = 0x03;
+Max7219.Digit3    = 0x04;
+Max7219.Digit4    = 0x05;
+Max7219.Digit5    = 0x06;
+Max7219.Digit6    = 0x07;
+Max7219.Digit7    = 0x08;
+Max7219.Mode      = 0x09;
+Max7219.Intensity = 0x0A;
+Max7219.ScanLimit = 0x0B;
+Max7219.Shutdown  = 0x0C;
+Max7219.Test      = 0x0F;
+
+Max7219.AsciiTable=[
+    0b01111110, 0b00110000, 0b01101101, 0b01111001, // 0123
+    0b00110011, 0b01011011, 0b01011111, 0b01110000, // 4567
+    0b01111111, 0b01111011, 0b00000001, 0b01001111, // 89-E
+    0b00110111, 0b00001110, 0b01100111, 0b00000000  // HLP 
+];
+
+Max7219.SEGA=0x40;
+Max7219.SEGB=0x20;
+Max7219.SEGC=0x10;
+Max7219.SEGD=0x08;
+Max7219.SEGE=0x04;
+Max7219.SEGF=0x02;
+Max7219.SEGG=0x01;
+Max7219.SEGDP=0x80;
+
+
+// Gradient made at http://www.perbang.dk/rgbgradient/
+Max7219.ColorTable=[
+    '#400000', '#4C0000', '#590000', '#660000',
+    '#720000', '#7F0000', '#8C0000', '#990000',
+    '#A50000', '#B20000', '#BF0000', '#CC0000',
+    '#D80000', '#E50000', '#F20000', '#FF0000',
+];
+
+
+//
+//
+//
+function Max7219(displayId) {
+  this.displayId    = displayId;
+  this.regs         = [0,8,9,10, 11,12,13,14, 15,0,0,0, 0,0,0,0];
+  this.firstByte    = undefined;
+};
+
+//
+//
+//
+Max7219.prototype.setRegister = function(register,value) {
+  this.regs[register] = value;
+  this.refresh();
+};
+
+//
+//
+//
+Max7219.prototype.input = function(data) {
+  if (this.firstByte===undefined) {
+    this.firstByte=data
+  } else {
+      this.setRegister(this.firstByte,data);
+      this.firstByte=undefined;
+  }
+}
+
+//
+//
+//
+Max7219.prototype.refresh = function() {
+  var display = document.getElementById(this.displayId);
+  if (!display) return;
+  var context = display.getContext('2d');
+  if (!context) return;
+  context.clearRect(0, 0, display.width, display.height);
+
+  for (var i=0; i<8; i++) {
+    var bits=this.regs[Max7219.Digit0+i];
+    var mask=(1<<i);
+    if (this.regs[Max7219.Mode] & (1<<i)) {            // Binary=0     Decode=1
+      bits=Max7219.AsciiTable[bits&0x0F] | (bits&0x80);// Lookup ascii and add back DP
+    }
+    if (i>this.regs[Max7219.ScanLimit]) bits=0x00;     // Turn off digits over scanlimit
+    if (this.regs[Max7219.Test]&1) bits=0xFF;          // Normal=0     Test=1
+    if (!(this.regs[Max7219.Shutdown]&1)) bits=0x00;   // Shutdown=0   Normal=1
+    var color=Max7219.ColorTable[this.regs[Max7219.Intensity]&0x0F];
+    // The digits is drawn in two steps. First all the unlit segments
+    // by using a bit-inverted value. Then the lit segments. This is
+    // done to reduce the code size a bit.
+    this.draw1DigitLayer(context, ~bits, i*22,0, '#202020');
+    this.draw1DigitLayer(context, bits, i*22,0, color);
+  }
+};
+
+
+//
+// Draws the segments specified by 'v' with the requested color
+// By some reason the MAX72xx have the order of segments reversed
+// compared to the usual pattern
+//
+// Bit#   :  7 6 5 4 3 2 1 0
+//---------------------------------------
+// Normal : dp G F E D C B A
+// Max72xx: dp A B C D E F G
+//
+Max7219.prototype.draw1DigitLayer = function(ctx, bits, xo,yo, c) {
+    var x=7+xo, y=4+yo;
+    var linewidth=3.5;
+    var height=11;
+    var width=12;
+
+    ctx.lineCap = 'round';
+ 
+    ctx.beginPath();                
+    ctx.strokeStyle = c;
+    ctx.lineWidth = linewidth;
+
+    if (bits & Max7219.SEGA) {
+        ctx.moveTo(4+x,       y);            // SEG A
+        ctx.lineTo(4+x+width, y);
+    }
+
+    if (bits & Max7219.SEGB) {
+        ctx.moveTo(4+x+width, y);            // SEG B
+        ctx.lineTo(2+x+width, y+height*1);
+    }
+
+    if (bits & Max7219.SEGC) {
+        ctx.moveTo(2+x+width, y+height*1);   // SEG C
+        ctx.lineTo(x+width, y+height*2);
+    }
+
+    if (bits & Max7219.SEGD) {
+        ctx.moveTo(x,       y+height*2);   // SEG D
+        ctx.lineTo(x+width, y+height*2);
+    }
+
+    if (bits & Max7219.SEGE) {
+        ctx.moveTo(2+x,       y+height*1);   // SEG E
+        ctx.lineTo(x,       y+height*2);
+    }
+
+    if (bits & Max7219.SEGF) {
+        ctx.moveTo(4+x,       y);            // SEG F
+        ctx.lineTo(2+x,       y+height*1);
+    }
+
+    if (bits & Max7219.SEGG) {
+        ctx.moveTo(2+x,       y+height*1);   // SEG G
+        ctx.lineTo(2+x+width, y+height*1);
+    }
+
+    ctx.stroke();
+
+    if (bits & Max7219.SEGDP) {
+        ctx.beginPath();                   // SEG DP
+        ctx.lineWidth=1;
+        ctx.fillStyle = c;
+        ctx.arc(x+width*1.4, y+height*2, 2, 0, 2*Math.PI, false);
+        ctx.fill();
+    }
+}
+
+
+//
+
+
+//
+//
+//
+function CreateBorderWHTL(w,h,t,l) {
+    if (w==0 || h==0) return;
+//    console.log("width="+w+" height="+h+" top="+t+" left="+l);
+    var e=document.createElement('span');
+    e.setAttribute('class','brdr');
+    e.style.width=w+'px';
+    e.style.height=h+'px';
+    e.style.top=t+'px';
+    e.style.left=l+'px';
+    document.body.appendChild(e);
+}
+
+
+
+//
+// Create a 8-digit 7-segment MAX7219 display module
+//      i   : Number of the display
+//      txt : The text shown by the legend element
+//      x   : x position relative to body
+//      y   : y position relative to body
+//
+function CreateDisplayTL(i,txt,siz,y,x) {
+    if (siz==0) return;
+    var myDisplay = document.createElement('fieldset');
+    myDisplay.setAttribute('class','item');
+    myDisplay.style.position='absolute';
+    myDisplay.style.top=y+'px';  
+    myDisplay.style.left=x+'px';
+    myDisplay.style.width=(siz*50-8)+'px';
+    myDisplay.style.height=45+'px';
+    //
+    var legend=document.createElement('legend');
+    legend.innerHTML=txt;
+    myDisplay.appendChild(legend);
+    //
+    var canvas=document.createElement('canvas');
+    canvas.setAttribute('id','display'+i);
+    canvas.setAttribute('width',(siz*50-8));
+    canvas.setAttribute('height',45);
+    myDisplay.appendChild(canvas);
+    //
+    document.body.appendChild(myDisplay);
+
+    var d = new Max7219('display'+i);
+    d.refresh();
+    return d;
+}
+
+
+function CreateVerDisplayTL(i,txt,siz,y,x) {
+    if (siz==0) return;
+    var myDisplay = document.createElement('fieldset');
+    myDisplay.setAttribute('class','item');
+    myDisplay.style.position='absolute';
+    myDisplay.style.top=y+'px';  
+    myDisplay.style.left=x+'px';
+    myDisplay.style.height=(siz*50-8)+'px';
+    myDisplay.style.width=45+'px';
+    //
+    var legend=document.createElement('legend');
+    legend.innerHTML=txt;
+    myDisplay.appendChild(legend);
+    //
+
+    var canvas=document.createElement('canvas');
+    canvas.setAttribute('id','display'+i);
+    canvas.setAttribute('width','30');
+    canvas.setAttribute('height','200');
+    myDisplay.appendChild(canvas);
+    //
+    document.body.appendChild(myDisplay);
+
+    var d = new Max7219('display'+i);
+    d.refresh();
+    return d;
+}
+
+
+</script>
+    
+</head>
+<body>
+</body>
+
+<script>
+    var step=50;
+    var dn=0;
+    var d;
+    for (var w=0; w<300; w+=step) {
+        CreateBorderWHTL(w,    step, w, 0);    
+        CreateDisplayTL(dn,'Ho'+dn, w/step, w, 0);
+        dn++;
+        CreateBorderWHTL(300-w,step, w, w);    
+        var x=CreateDisplayTL(dn,'Ho'+dn, (300-w)/step, w, w);
+        if (dn==5) d=x;
+        dn++;
+    }
+    var offset=300;
+    for (var w=0; w<300; w+=step) {
+        CreateBorderWHTL(step,300, 0, offset+w);    
+        CreateVerDisplayTL(dn,'Ve'+dn, w/step, 0,offset+w)
+        dn++;
+        CreateBorderWHTL(step,300-w, w, offset+w);    
+        CreateVerDisplayTL(dn,'Ve'+dn, (300-w)/step, w,offset+w)
+        dn++;
+    }
+
+    d.input(Max7219.Shutdown);  d.input(1);    
+    d.input(Max7219.ScanLimit); d.input(7);    
+    d.input(Max7219.Mode);      d.input(0xFF);    
+    d.input(Max7219.Intensity); d.input(0x0F);
+    // d.setRegister(Max7219.Shutdown,1);
+    // d.setRegister(Max7219.ScanLimit,7);
+    // d.setRegister(Max7219.Mode,0xff);
+    // d.setRegister(Max7219.Intensity,0x0f);
+
+
+</script>
+  
+</html>

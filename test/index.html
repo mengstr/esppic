@@ -1,0 +1,85 @@
+<html>
+  
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>SegmentDisplay</title>
+    
+    <style>
+      body {
+        background-color:#494949;
+        color:#fff;
+      }
+      .disp8 {
+        width:140px;
+        height:40px;
+        border:1px solid rgba(255,255,255,0.2);
+        padding-left:10px; 
+        padding-right:10px;
+      }
+    </style>
+
+    <!--[if lt IE 9]>
+    <script type="text/javascript" src="excanvas.js"></script>
+    <![endif]-->
+
+    <script type="text/javascript" src="segment-display.js"></script>
+
+    <script type="text/javascript">
+      var display1 = new SegmentDisplay("display1");
+      display1.pattern         = "########";
+      display1.displayAngle    = 15;
+      display1.digitHeight     = 2.5;
+      display1.digitWidth      = 1.5;
+      display1.digitDistance   = 0.6;
+      display1.segmentWidth    = 0.3;
+      display1.segmentDistance = 0.12;
+      display1.segmentCount    = 7;
+      display1.cornerType      = 3;
+      display1.colorOn         = "#ff7f40";
+      display1.colorOff        = "#404040";
+      display1.draw();
+      display1.setValue("12345678");
+
+      var display2 = new SegmentDisplay("display2");
+      display2.pattern         = "########";
+      display2.displayAngle    = 15;
+      display2.digitHeight     = 2.5;
+      display2.digitWidth      = 1.5;
+      display2.digitDistance   = 0.6;
+      display2.segmentWidth    = 0.3;
+      display2.segmentDistance = 0.12;
+      display2.segmentCount    = 7;
+      display2.cornerType      = 3;
+      display2.colorOn         = "#ff7f40";
+      display2.colorOff        = "#404040";
+      display2.draw();
+      display2.setValue("87777778");
+
+      var display = new SegmentDisplay("display");
+      display.pattern         = "#######.#";
+      display.displayAngle    = 15;
+      display.digitHeight     = 2.5;
+      display.digitWidth      = 1.5;
+      display.digitDistance   = 0.6;
+      display.segmentWidth    = 0.25;
+      display.segmentDistance = 0.1;
+      display.segmentCount    = 7;
+      display.cornerType      = 3;
+      display.colorOn         = "#ffffff";
+      display.colorOff        = "#3b3b3b";
+      display.draw();
+
+    </script>
+    
+  </head>
+  
+  <body>
+    Display1<br />
+    <canvas class="disp8" id="display1"></canvas><br />
+    Display2<br />
+    <canvas class="disp8" id="display2"></canvas><br />
+    Display<br />
+    <canvas class="disp8" id="display"></canvas><br />
+  </body>
+  
+</html>

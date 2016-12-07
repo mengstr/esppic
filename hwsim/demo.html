@@ -1,0 +1,92 @@
+<!doctype html>
+
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>HwSim Demo</title>
+    <style>
+        body {
+            background-color: #494949;
+            color: #fff;
+            margin: 0px;
+        }
+    </style>
+    <script src="Led.js"></script>
+    <script src="Max7219.js"></script>
+    <script src="Item.js"></script>
+</head>
+
+<body>
+</body>
+
+
+
+
+<script>
+    //
+    // Command type 01 is fore creating parts on the screen
+    //
+    // cmd:2 id:7 dev:5 x:5 y:5 label:64
+    // 
+    // 76543210 76543210 76543210 76543210 ... 76543210 
+    //-------------------------------------------------
+    // cciiiiii idddddxx xxxyyyyy llllllll ... llllllll
+    //           ddddd
+    function CMD01(id, type, x, y, label) {
+        id &= 0x7F;
+        type &= 0x1F;
+        x &= 0x1F;
+        y &= 0x1F;
+        label = label.substr(0, 8);
+        var a = [
+            (1 << 6) | (id >> 1),
+            ((id & 1) << 7) | (type << 2) | (x >> 3),
+            ((x & 7) << 5) | y,
+            0, 0, 0, 0, 0, 0, 0, 0,
+        ];
+        for (var i = 0; i < label.length; i++) {
+            a[i + 3] = label.charCodeAt(i);
+        }
+        return a;
+    }
+
+
+    console.log(CMD01(127, 31, 31, 31, "@ABCDEFGHJIJKLM"));
+
+    // parts.push(new Led(CreatePart(1, "Led1", 0, 0, 1, 1)));
+    // parts.push(new Led(CreatePart(1, "Led2", 1, 0, 1, 1)));
+    // parts.push(new Led(CreatePart(1, "Led3", 2, 0, 1, 1)));
+    // parts.push(new Led(CreatePart(1, "Led4", 3, 0, 1, 1)));
+    // parts[0].state(true);
+    // parts.push(new Max7219(CreatePart(1, "Disp1", 4, 0, 4, 1)));
+    // parts.push(new Max7219(CreatePart(2, "Disp2", 3, 1, 4, 1)));
+    // parts.push(new Max7219(CreatePart(3, "Disp3", 2, 2, 4, 1)));
+    // parts.push(new Max7219(CreatePart(4, "Disp4", 1, 3, 4, 1)));
+
+    // for (var i = 0; i < 4; i++) {
+    //     SendToSpiChain(parts, Max7219.Shutdown);
+    //     SendToSpiChain(parts, 1);
+    // }
+    // SendToSpiChain(parts);
+    // for (var i = 0; i < 4; i++) {
+    //     SendToSpiChain(parts, Max7219.ScanLimit);
+    //     SendToSpiChain(parts, 7);
+    // }
+    // SendToSpiChain(parts);
+    // for (var i = 0; i < 4; i++) {
+    //     SendToSpiChain(parts, Max7219.Mode);
+    //     SendToSpiChain(parts, 0xFF);
+    // }
+    // SendToSpiChain(parts);
+    // for (var i = 0; i < 4; i++) {
+    //     SendToSpiChain(parts, Max7219.Intensity);
+    //     SendToSpiChain(parts, 0x0f);
+    // }
+    // SendToSpiChain(parts);
+
+
+    //cmd:2 id:7 dev:5 x:5 y:5 label:64
+</script>
+
+</html>

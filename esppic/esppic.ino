@@ -7,10 +7,12 @@
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
 #include <ESP8266WebServer.h>
+#include <WebSocketsServer.h>
 #include <FS.h>
 
 const char* ssid = "TANGMOHOME";
 const char* password = "3334932015";
+WebSocketsServer webSocket = WebSocketsServer(81);
 
 #define SWAP16(x) (((x & 0x00ff) << 8) | ((x & 0xff00) >> 8))
 
@@ -82,7 +84,47 @@ char code[]={\
 ":04000E00C4C9FFFF63\n"\
 ":00000001FF\n"\
 };
+
 char *codep=code;
+
+
+void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t lenght) {
+   switch(type) {
+        case WStype_DISCONNECTED:
+            Serial.printf("[%u] Disconnected!\n", num);
+            break;
+        case WStype_CONNECTED:
+            {
+                IPAddress ip = webSocket.remoteIP(num);
+                Serial.printf("[%u] Connected from %d.%d.%d.%d url: %s\n", num, ip[0], ip[1], ip[2], ip[3], payload);
+        
+        // send message to client
+        webSocket.sendTXT(num, "Connected");
+            }
+            break;
+        case WStype_TEXT:
+            Serial.printf("[%u] get Text: %s\n", num, payload);
+            if (payload[0]=='b') {
+                  RESET_LOW;
+                  delay(100);
+                  RESET_HIGH;
+            }
+            // send message to client
+            //webSocket.sendTXT(num, "message here");
+
+            // send data to all connected clients
+            // webSocket.broadcastTXT("message here");
+            break;
+        case WStype_BIN:
+            Serial.printf("[%u] get binary lenght: %u\n", num, lenght);
+            hexdump(payload, lenght);
+
+            // send message to client
+            // webSocket.sendBIN(num, payload, lenght);
+            break;
+    }
+
+}
 
 
 
@@ -191,7 +233,9 @@ void setup() {
   Serial.println(WiFi.localIP());
 
   server.begin();
-
+  webSocket.begin();
+  webSocket.onEvent(webSocketEvent);
+    
   server.on("/", HTTP_GET, []() {
     Serial.println("HTTP_GET /");
     server.send_P(200,"text/html", index_html);
@@ -634,62 +678,62 @@ void Store(uint16_t address, uint16_t data) {
 
 
 
+////
+//// The main code that does the stuff ^__^
+////
+//void flash_gordon() {
+//  uint16_t data[32];
+//  uint16_t a;
+//  uint8_t d_len;
+//  uint16_t d_addr;
+//  uint8_t d_typ;
+//  
+//  EnterLVPmode();
 //
-// The main code that does the stuff ^__^
+//  // CONFIG words
+//  CmdResetAddress();
+//  CmdLoadConfig(0x00);
+//  CmdBulkErase();
+//  Store(CONFIG1, SWAP16(0xE4C9));  delay(5);
+//  Store(CONFIG2, SWAP16(0xFBFF));  delay(5);
 //
-void flash_gordon() {
-  uint16_t data[32];
-  uint16_t a;
-  uint8_t d_len;
-  uint16_t d_addr;
-  uint8_t d_typ;
-  
-  EnterLVPmode();
-
-  // CONFIG words
-  CmdResetAddress();
-  CmdLoadConfig(0x00);
-  CmdBulkErase();
-  Store(CONFIG1, SWAP16(0xE4C9));  delay(5);
-  Store(CONFIG2, SWAP16(0xFBFF));  delay(5);
-
-  CmdResetAddress();
-
-  // USER ID's in the CONFIG area
-  Store(USERID+0,SWAP16(0x8031));	// Just put some hardcoded
-  Store(USERID+1,SWAP16(0x0228));	// data here for fun while
-  Store(USERID+2,SWAP16(0x8731));	// debugging
-  Store(USERID+3,SWAP16(0xE12F));
-
-  // CODE
-  char *s;
-  do {
-    s=getline();
-    Serial.println(s);
-    d_len=HexDec2(s[1],s[2]);
-    d_addr=HexDec4(s[3],s[4],s[5],s[6]);
-    d_typ=HexDec2(s[7],s[8]);
-    Serial.printf("len=%02x addres=%04x type=%02x\n",d_len,d_addr,d_typ);
-    if (d_typ==0x00) {
-      for (uint8_t i=0; i<d_len*2; i+=4) {              
-        Store(d_addr/2+i/4,HexDec4(s[11+i],s[12+i],s[9+i],s[10+i]));
-      }
-    }
-  } while (d_typ!=1);
-
-  // Dump the CONFIGs and the CODE areas onto serial
-  // for debugging
-  CmdResetAddress();
-//  DumpConfig();
-  CmdResetAddress();
-  DumpMemory();
-
-
-  // De-assert the PIC reset line so the new code just uploaded
-  // can start running on it. Then just hang the ESP in an forever loop
-  RESET_HIGH;
-  for (;;) delay(1);
-}
+//  CmdResetAddress();
+//
+//  // USER ID's in the CONFIG area
+//  Store(USERID+0,SWAP16(0x8031));	// Just put some hardcoded
+//  Store(USERID+1,SWAP16(0x0228));	// data here for fun while
+//  Store(USERID+2,SWAP16(0x8731));	// debugging
+//  Store(USERID+3,SWAP16(0xE12F));
+//
+//  // CODE
+//  char *s;
+//  do {
+//    s=getline();
+//    Serial.println(s);
+//    d_len=HexDec2(s[1],s[2]);
+//    d_addr=HexDec4(s[3],s[4],s[5],s[6]);
+//    d_typ=HexDec2(s[7],s[8]);
+//    Serial.printf("len=%02x addres=%04x type=%02x\n",d_len,d_addr,d_typ);
+//    if (d_typ==0x00) {
+//      for (uint8_t i=0; i<d_len*2; i+=4) {              
+//        Store(d_addr/2+i/4,HexDec4(s[11+i],s[12+i],s[9+i],s[10+i]));
+//      }
+//    }
+//  } while (d_typ!=1);
+//
+//  // Dump the CONFIGs and the CODE areas onto serial
+//  // for debugging
+//  CmdResetAddress();
+////  DumpConfig();
+//  CmdResetAddress();
+//  DumpMemory();
+//
+//
+//  // De-assert the PIC reset line so the new code just uploaded
+//  // can start running on it. Then just hang the ESP in an forever loop
+//  RESET_HIGH;
+//  for (;;) delay(1);
+//}
 
 
 
@@ -698,6 +742,7 @@ void flash_gordon() {
 //
 void loop(void) {
   server.handleClient();
-  delay(10);
+  webSocket.loop();
+  delay(1);
 }
 

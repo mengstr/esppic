@@ -1,0 +1,409 @@
+<html>
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <style>
+        body {
+            background-color: #494949;
+            color: #fff;
+        }
+        
+        .potv {
+            width: 18px;
+            height: 187px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            color: white;
+        }
+        
+        .potv>input[type="range"] {
+            -webkit-appearance: slider-vertical;
+            height: 170px;
+            width: 12px;
+        }
+        
+        input[type=range]::-moz-range-thumb {
+            border: 1px solid #000000;
+            height: 10px;
+            width: 20px;
+            border-radius: 3px;
+            background: #FFF;
+            cursor: pointer;
+        }
+        
+        .switches {
+            width: 200px;
+            height: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            color: white;
+        }
+        
+        .switches>span {
+            position: relative;
+            top: -5px;
+            font-size: 110%;
+        }
+        
+        .leds {
+            width: 200px;
+            height: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            color: white;
+        }
+        
+        .sevenseg {
+            width: 200px;
+            height: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+        }
+        
+        .sevenseg>canvas {
+            width: 200px;
+            height: 70px;
+            position: relative;
+            top: -25px;
+        }
+        
+        legend {
+            font-size: 70%;
+        }
+    </style>
+
+    <script type="text/javascript" src="segment-display.js"></script>
+    <script type="text/javascript">
+        //
+        //  Create
+        //      <cmd2> <idnum7> <type3> <x6> <y6> <label...>
+        //      76543210 76543210 76543210
+        //      01nnnnnn ntttxxxx xxyyyyyy
+        //
+        //  Update
+        //      <cmd2> <idnum7> <type3> <value....>
+        //      01nnnnnn nttt----   
+        //      01nnnnnn n000---- AAAAAAAA BBBBBBBB ... HHHHHHHH    // Display HEX nybbles
+        //      01nnnnnn n001---- AAAAAAAA BBBBBBBB ... HHHHHHHH    // 7 segment patterns
+        //
+        // 
+
+        function createBinaryString(n) {
+            var s = '00000000' + (n >>> 0).toString(2);
+            return s.substr(-8);
+        }
+
+        var COORDSTEP = 26;
+
+        var n = 0,
+            t = 0,
+            x = 0,
+            y = 0;
+        var D0 = [
+            (1 << 6) | (n >> 1),
+            ((n & 1) << 7) | (t << 4) | (x >> 2),
+            ((x & 3) << 6) | y,
+            64, 65, 66, 67, 68, 69, 70, 71, 72, 73
+        ];
+
+        var n = 1,
+            t = 1,
+            x = 11,
+            y = 0;
+        var D1 = [
+            (1 << 6) | (n >> 1),
+            ((n & 1) << 7) | (t << 4) | (x >> 2),
+            ((x & 3) << 6) | y,
+            64, 65, 66, 67, 68, 69, 70, 71, 72, 73
+        ];
+
+        var n = 2,
+            t = 2,
+            x = 0,
+            y = 2;
+        var D2 = [
+            (1 << 6) | (n >> 1),
+            ((n & 1) << 7) | (t << 4) | (x >> 2),
+            ((x & 3) << 6) | y,
+            64, 65, 66, 67, 68, 69, 70, 71, 72, 73
+        ];
+
+        var n = 3,
+            t = 3,
+            x = 0,
+            y = 8;
+        var D3 = [
+            (1 << 6) | (n >> 1),
+            ((n & 1) << 7) | (t << 4) | (x >> 2),
+            ((x & 3) << 6) | y,
+            64, 65, 66, 67, 68, 69, 70, 71, 72, 73
+        ];
+
+        var n = 4,
+            t = 4,
+            x = 9,
+            y = 0;
+        var D4 = [
+            (1 << 6) | (n >> 1),
+            ((n & 1) << 7) | (t << 4) | (x >> 2),
+            ((x & 3) << 6) | y,
+            64, 32, 32, 32, 32, 32, 32, 32, 32, 32
+        ];
+
+
+        //
+        //
+        //
+        function HandleCmd(buf) {
+            console.log(createBinaryString(buf[0]) + ' ' + createBinaryString(buf[1]) + ' ' + createBinaryString(buf[2]));
+            switch (buf[0] >> 6) {
+                case 0:
+                    HandleCmd00(buf);
+                    break;
+                case 1:
+                    HandleCmd01(buf);
+                    break;
+                case 2:
+                    HandleCmd10(buf);
+                    break;
+                case 3:
+                    HandleCmd11(buf);
+                    break;
+            }
+        }
+
+
+        //
+        // Command 00 - Update value/state of items
+        //
+        function HandleCmd00(a) {}
+
+
+        //
+        // Command 01 - Create items
+        //
+        //      <cmd2> <idnum7> <type3> <x6> <y6> <label64...>
+        //      76543210 76543210 76543210
+        //      01nnnnnn ntttxxxx xxyyyyyy ......
+        //
+        function HandleCmd01(a) {
+            var num = ((a[0] << 1) & 0x7F) | (a[1] >> 7);
+            var typ = ((a[1] >> 4) & 0x07);
+            var x = ((a[1] << 2) & 0x3F) | (a[2] >> 6);
+            var y = a[2] & 0x3F;
+            var s = String.fromCharCode(a[3]) +
+                String.fromCharCode(a[4]) +
+                String.fromCharCode(a[5]) +
+                String.fromCharCode(a[6]) +
+                String.fromCharCode(a[7]) +
+                String.fromCharCode(a[8]) +
+                String.fromCharCode(a[9]) +
+                String.fromCharCode(a[10]);
+            switch (typ) {
+                case 0:
+                    displays[num] = CreateDisplay(0, num, s, x * COORDSTEP, y * COORDSTEP);
+                    break;
+                case 1:
+                    displays[num] = CreateDisplay(1, num, s, x * COORDSTEP, y * COORDSTEP);
+                    break;
+                case 2:
+                    leds[num] = CreateLeds(num, s, x * COORDSTEP, y * COORDSTEP);
+                    break;
+                case 3:
+                    switches[num] = CreateSwitches(num, s, x * COORDSTEP, y * COORDSTEP);
+                    break;;
+                case 4:
+                    pots[num] = CreatePot(num, s, x * COORDSTEP, y * COORDSTEP);
+                    break;
+                case 5:
+                    break;
+                case 6:
+                    break;
+                case 7:
+                    break;
+            }
+        }
+
+
+        //
+        //
+        //
+        function HandleCmd10(a) {}
+
+
+        //
+        //
+        //
+        function HandleCmd11(a) {}
+
+
+        function Get1Switch(v) {
+            if (v) return '<span style="text-decoration:overline">&#x2460;</span>';
+            else return '<span style="text-decoration:underline">&#x24ea;</span>';
+        }
+
+        function CreateSwitchesHtml(v) {
+            var s = "<span>&nbsp;";
+            s += Get1Switch(v & 0x80) + '&nbsp;';
+            s += Get1Switch(v & 0x40) + '&nbsp;';
+            s += Get1Switch(v & 0x20) + '&nbsp;';
+            s += Get1Switch(v & 0x10) + '&nbsp;';
+            s += '&nbsp;';
+            s += Get1Switch(v & 0x08) + '&nbsp;';
+            s += Get1Switch(v & 0x04) + '&nbsp;';
+            s += Get1Switch(v & 0x02) + '&nbsp;';
+            s += Get1Switch(v & 0x01) + '&nbsp;';
+            s += '</span>';
+            return s;
+        }
+    </script>
+
+</head>
+
+<body>
+
+    <script>
+        var displays = [];
+        var leds = [];
+        var switches = [];
+        var pots = [];
+
+        HandleCmd(D0);
+        HandleCmd(D1);
+        HandleCmd(D2);
+        HandleCmd(D3);
+        HandleCmd(D4);
+
+
+        function CreatePot(i, txt, x, y) {
+            var myPot = document.createElement('fieldset');
+            myPot.setAttribute('class', 'potv');
+            myPot.style.position = 'absolute';
+            myPot.style.left = x + 'px';
+            myPot.style.top = y + 'px';
+            //
+            myPot.innerHTML = '';
+            //
+            legend = document.createElement('legend');
+            legend.innerHTML = txt;
+            myPot.appendChild(legend);
+            //
+            var p = document.createElement('input');
+            p.setAttribute('id', 'pot' + i);
+            p.setAttribute('type', 'range');
+            p.setAttribute('orient', 'vertical');
+            p.min = 0;
+            p.max = 1024;
+            p.value = 128;
+
+            myPot.appendChild(p);
+            //
+            document.body.appendChild(myPot);
+
+            return 1;
+        }
+
+
+        //
+        //   <fieldset class="switches" style="position:absolute;left:0px;top=0px;"><legend>Switches</legend>
+        //     document.write(CreateSwitchesHtml(0));
+        //  </fieldset>
+        function CreateSwitches(i, txt, x, y) {
+            var mySwitches = document.createElement('fieldset');
+            mySwitches.setAttribute('class', 'switches');
+            mySwitches.style.position = 'absolute';
+            mySwitches.style.left = x + 'px';
+            mySwitches.style.top = y + 'px';
+            //
+            mySwitches.innerHTML = CreateSwitchesHtml(0x55);
+            //
+            legend = document.createElement('legend');
+            legend.innerHTML = txt;
+            mySwitches.appendChild(legend);
+            //
+            document.body.appendChild(mySwitches);
+
+            return 1;
+        }
+
+
+
+        // 
+        //
+        //
+        // <span><fieldset class="leds" style="position:absolute;left:0px;top=0px;"><legend>PortA</legend>
+        //    &nbsp;&#x2b24;&nbsp;&#x2b24;&nbsp;&#x2b24;&nbsp;&#x2b24;&nbsp;&nbsp;&nbsp;&#x25ef;&nbsp;&#x25ef;&nbsp;&#x25ef;&nbsp;&#x25ef;
+        // </fieldset></span>
+        function CreateLeds(i, txt, x, y) {
+            var myLeds = document.createElement('fieldset');
+            myLeds.setAttribute('class', 'leds');
+            myLeds.style.position = 'absolute';
+            myLeds.style.left = x + 'px';
+            myLeds.style.top = y + 'px';
+            //
+            myLeds.innerHTML = '&nbsp;&#x2b24;&nbsp;&#x2b24;&nbsp;&#x2b24;&nbsp;&#x2b24;&nbsp;&nbsp;&nbsp;&#x25ef;&nbsp;&#x25ef;&nbsp;&#x25ef;&nbsp;&#x25ef;';
+            //
+            legend = document.createElement('legend');
+            legend.innerHTML = txt;
+            myLeds.appendChild(legend);
+            //
+            document.body.appendChild(myLeds);
+
+            return 1;
+        }
+
+
+        //
+        // Create a 8-digit 7-segment display module
+        //      mode: 0=ASCII 0..F
+        //      mode: 1=Binary segments 0x00..0x7F
+        //      i   : Number of the display
+        //      txt : The text shown by the legend element
+        //      x   : x position relative to body
+        //      y   : y position relative to body
+        //
+        function CreateDisplay(mode, i, txt, x, y) {
+            var myDisplay = document.createElement('fieldset');
+            myDisplay.setAttribute('class', 'sevenseg');
+            myDisplay.style.position = 'absolute';
+            myDisplay.style.left = x + 'px';
+            myDisplay.style.top = y + 'px';
+            //
+            legend = document.createElement('legend');
+            legend.innerHTML = txt;
+            myDisplay.appendChild(legend);
+            //
+            canvas = document.createElement('canvas');
+            canvas.setAttribute('id', 'display' + i);
+            myDisplay.appendChild(canvas);
+            //
+            document.body.appendChild(myDisplay);
+
+            var d = new SegmentDisplay('display' + i);
+            if (mode == 0) d.pattern = "########"
+            else d.pattern = "********"
+            d.displayAngle = 5;
+            d.digitHeight = 2.5;
+            d.digitWidth = 1.5;
+            d.digitDistance = 0.6;
+            d.segmentWidth = 0.3;
+            d.segmentDistance = 0.12;
+            d.segmentCount = 7;
+            d.cornerType = 3;
+            d.colorOn = "#ff7f40";
+            d.colorOff = "#404040";
+            d.draw();
+            if (mode == 0) d.setValue("12345678")
+            else d.setValue("@@@@@@@@");
+
+            return d;
+        }
+
+        // setInterval(function(){
+        //     displays[Math.floor((Math.random()*6))].setValue(""+Math.floor((Math.random() * 99999999) + 1));
+        // },100);
+    </script>
+</body>
+
+</html>
