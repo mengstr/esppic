@@ -1,0 +1,58 @@
+<!doctype html>
+
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <script>
+        var Restaurant = (function() {
+
+            var _id = 0;
+            var privateVars = [];
+
+            function Restaurant(name) {
+                this.id = ++_id;
+                this.name = name;
+                privateVars[this.id] = {
+                    cooked: []
+                };
+            }
+
+            function Balla(epa) {
+                console.log("food at BALLA! where epa is " + epa.name);
+            }
+
+            Restaurant.prototype.food = function() {
+                Balla(this);
+            }
+
+
+            //            Restaurant.P = "Poelsa";
+            Restaurant.P = {
+                POPPA: 10,
+                PIPPA: 20
+            };
+
+            // Restaurant.prototype.cook = function(food) {
+            //     privateVars[this.id].cooked.push(food);
+            // }
+
+            return Restaurant;
+
+        })();
+
+        var bk = new Restaurant("Burger King");
+        var mcd = new Restaurant("McDonalds");
+
+        console.log(bk);
+        console.log(mcd);
+        bk.food();
+        mcd.food();
+        console.log("Restaurant.P=" + Restaurant.P.POPPA)
+    </script>
+</head>
+
+<body>
+</body>
+
+</html>

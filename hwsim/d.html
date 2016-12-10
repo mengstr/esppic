@@ -1,0 +1,139 @@
+<!doctype html>
+
+<html lang="en">
+
+<head>
+<meta charset="utf-8">
+<title>HwSim Demo</title>
+<style>
+body {
+background-color: #494949;
+color: #fff;
+margin: 0px;
+}
+</style>
+<script>
+var b=document.createElement("style");b.innerHTML="/* Led */";document.head.appendChild(b);window.Led=c;function c(a){this.a=a;this.type=2;this.f=!1;this.b()}c.prototype.state=c.prototype.g;c.prototype.g=function(a){this.f=a;this.b()};c.prototype.refresh=c.prototype.b;c.prototype.b=function(){var a=this.a.getContext("2d");a&&(a.clearRect(0,0,this.a.width,this.a.height),this.c(a,0,0,this.f))};c.prototype.draw1Led=c.prototype.c;
+c.prototype.c=function(a,d,e,f){d+=20;e+=15;a.beginPath();a.strokeStyle="white";a.lineWidth=1;f&&(a.fillStyle="green");a.arc(d,e,6,0,2*Math.PI,!1);f&&a.fill();a.stroke()};
+</script>
+<script>
+var e=[126,48,109,121,51,91,95,112,127,123,1,79,55,14,103,0],h="#400000 #4C0000 #590000 #660000 #720000 #7F0000 #8C0000 #990000 #A50000 #B20000 #BF0000 #CC0000 #D80000 #E50000 #F20000 #FF0000".split(" "),k=document.createElement("style");k.innerHTML="/* Max7219 */";document.head.appendChild(k);window.Max7219=l;function l(a,c){this.b=a;this.type=c;this.a=[0,0,1,2,3,4,5,6,7,0,0,0,0,0,0,0];this.h=this.g=0;this.c()}l.prototype.setRegister=l.prototype.j;l.prototype.j=function(a,c){this.a[a]=c;this.c()};
+l.prototype.spi=l.prototype.m;l.prototype.m=function(a){var c=this.h;this.h=this.g;this.g=a;return c};l.prototype.latch=l.prototype.l;l.prototype.l=function(){this.j(this.h,this.g)};l.prototype.refresh=l.prototype.c;
+l.prototype.c=function(){var a=this.b.getContext("2d");if(a){a.clearRect(0,0,this.b.width,this.b.height);for(var c=0;8>c;c++){var b=this.a[1+c];this.a[9]&1<<c&&(b=e[b&15]|b&128);c>this.a[11]&&(b=0);this.a[15]&1&&(b=255);this.a[12]&1||(b=0);var d=h[this.a[10]&15];0==this.type&&(this.f(a,~b,22*c,0,"#202020"),this.f(a,b,22*c,0,d));1==this.type&&this.i(a,b,0,c*m,d)}}};var m=10;l.prototype.draw1DigitLayer=l.prototype.f;
+l.prototype.f=function(a,c,b,d,f){b=7+b;d=4+d;a.lineCap="round";a.beginPath();a.strokeStyle=f;a.lineWidth=3.5;c&64&&(a.moveTo(4+b,d),a.lineTo(4+b+12,d));c&32&&(a.moveTo(4+b+12,d),a.lineTo(2+b+12,d+11));c&16&&(a.moveTo(2+b+12,d+11),a.lineTo(b+12,d+22));c&8&&(a.moveTo(b,d+22),a.lineTo(b+12,d+22));c&4&&(a.moveTo(2+b,d+11),a.lineTo(b,d+22));c&2&&(a.moveTo(4+b,d),a.lineTo(2+b,d+11));c&1&&(a.moveTo(2+b,d+11),a.lineTo(2+b+12,d+11));a.stroke();c&128&&(a.beginPath(),a.lineWidth=1,a.fillStyle=f,a.arc(b+12*
+1.4,d+22,2,0,2*Math.PI,!1),a.fill())};l.prototype.draw1MatrixRow=l.prototype.i;l.prototype.i=function(a,c,b,d,f){b=12+b;d=7+d;a.strokeStyle="white";a.lineWidth=1;a.fillStyle=f;f=1;for(var g=0;8>g;g++)a.beginPath(),a.arc(b+g*m,d,4,0,2*Math.PI,!1),c&f?a.fill():a.stroke(),f*=2};
+</script>
+<script>
+var f=document.createElement("style");f.innerHTML=".part {\nbackground-color: #333;\nborder: 1px solid rgba(255, 255, 255, 0.2);\nborder-radius: 5px;\npadding: 0;\nmargin: 0;\n}\n\nlegend {\nfont-size: 60%;\n}";document.head.appendChild(f);var k=[];window.CreatePart=l;
+function l(a,b,c,e,h,g){var d=document.createElement("fieldset");d.setAttribute("class","part");d.style.position="absolute";d.style.top=50*e+"px";d.style.left=50*c+"px";d.style.width=50*h-8+"px";d.style.height=50*g-5+"px";c=document.createElement("legend");c.innerHTML=b;d.appendChild(c);b=document.createElement("canvas");b.setAttribute("id","part"+a);b.setAttribute("width",50*h-8);b.setAttribute("height",50*g-5);d.appendChild(b);document.body.appendChild(d);return b}window.Send1ByteToSpiChain=m;
+function m(a,b){for(var c=0;c<a.length;c++)a[c].a&&(void 0===b||0==b.length?a[c].b():b=a[c].c(b))}window.RemoveAllParts=n;function n(){for(var a=document.getElementsByClassName("part");a[0];)a[0].parentNode.removeChild(a[0])}window.HandleCmd00=p;
+function p(a){for(var b=(a[0]&63)<<1|a[1]>>7,c=[],e=2;e<a.length;e++)c.push(a[e]);console.log("HandleCmd00 id="+b+" (dev="+k[b].typeName+") data="+c+" ( "+c.length+" bytes)");switch(k[b].type){case 0:case 1:if(0<c.length)for(e=0;e<c.length;e++)m(k,c[e]);else m(k);break;case 2:k[b].state(!0)}}window.HandleCmd01=q;
+function q(a){for(var b=(a[0]&63)<<1|a[1]>>7,c=a[1]>>2&31,e=(a[1]&3)<<3|a[2]>>5,h=a[2]&31,g="",d=0;8>d&&a[d+3];d++)g+=String.fromCharCode(a[d+3]);switch(c){case 0:k.push(new Max7219(l(b,g,e,h,4,1),0));break;case 1:k.push(new Max7219(l(b,g,e,h,2,2),1));break;case 2:k.push(new Led(l(b,g,e,h,1,1)))}};
+</script>
+</head>
+
+<body>
+</body>
+
+
+
+
+<script>
+var DISP7219_SEGMENT = 0;
+var DISP7219_MATRIX = 1;
+var LED_1 = 2;
+
+//
+// Command type 00 is for sending data to the parts
+//
+// cmd:2 id:7 filler:6 data:>=8
+//
+// 76543210 76543210 76543210 ...
+//-------------------------------------------------
+// cciiiiii i_______ dddddddd ...
+//
+function CMD00(id, data) {
+id &= 0x7F;
+var a = [
+(0 << 6) | (id >> 1),
+((id & 1) << 7),
+];
+// console.log("typeOf(data)=" + typeof data);
+if (typeof data == 'number') {
+a.push(data);
+}
+if (typeof data == 'object') {
+for (var i = 0; i < data.length; i++) {
+a.push(data[i]);
+}
+}
+// console.log("CMD00:" + a);
+return a;
+}
+
+
+//
+// Command type 01 is for creating parts on the screen
+//
+// cmd:2 id:7 dev:5 x:5 y:5 label:64
+//
+// 76543210 76543210 76543210 76543210 ... 76543210
+//-------------------------------------------------
+// cciiiiii idddddxx xxxyyyyy llllllll ... llllllll
+//
+function CMD01(id, type, x, y, label) {
+id &= 0x7F;
+type &= 0x1F;
+x &= 0x1F;
+y &= 0x1F;
+label = label.substr(0, 8);
+var a = [
+(1 << 6) | (id >> 1),
+((id & 1) << 7) | (type << 2) | (x >> 3),
+((x & 7) << 5) | y,
+0, 0, 0, 0, 0, 0, 0, 0,
+];
+for (var i = 0; i < label.length; i++) {
+a[i + 3] = label.charCodeAt(i);
+}
+console.log("CMD01:" + a);
+return a;
+}
+
+HandleCmd01(CMD01(0, DISP7219_MATRIX, 1, 1, "Matrix1"));
+HandleCmd01(CMD01(1, LED_1, 0, 0, "Led1"));
+HandleCmd01(CMD01(2, LED_1, 1, 0, "Led2"));
+HandleCmd01(CMD01(3, DISP7219_MATRIX, 3, 1, "Matrix2"));
+HandleCmd01(CMD01(4, DISP7219_SEGMENT, 0, 3, "Seg1"));
+HandleCmd01(CMD01(5, DISP7219_SEGMENT, 0, 4, "Seg2"));
+
+HandleCmd00(CMD00(1, 1));
+HandleCmd00(CMD00(2, 1));
+
+var d = [Max7219.Shutdown, 1];
+HandleCmd00(CMD00(0, d));
+HandleCmd00(CMD00(0, d));
+HandleCmd00(CMD00(0, d));
+HandleCmd00(CMD00(0, d));
+HandleCmd00(CMD00(0));
+var d = [Max7219.ScanLimit, 7];
+HandleCmd00(CMD00(0, d));
+HandleCmd00(CMD00(0, d));
+HandleCmd00(CMD00(0, d));
+HandleCmd00(CMD00(0, d));
+HandleCmd00(CMD00(0));
+var d = [Max7219.Mode, 0xFF];
+HandleCmd00(CMD00(0, d));
+HandleCmd00(CMD00(0, d));
+var d = [Max7219.Mode, 0x00];
+HandleCmd00(CMD00(0, d));
+HandleCmd00(CMD00(0, d));
+HandleCmd00(CMD00(0));
+var d = [Max7219.Intensity, 0x0F];
+HandleCmd00(CMD00(0, d));
+HandleCmd00(CMD00(0, d));
+HandleCmd00(CMD00(0, d));
+HandleCmd00(CMD00(0, d));
+HandleCmd00(CMD00(0));
+</script>
+

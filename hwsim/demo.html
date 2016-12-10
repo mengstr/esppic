@@ -24,15 +24,47 @@
 
 
 <script>
+    var LED_1 = 2;
+
     //
-    // Command type 01 is fore creating parts on the screen
+    // Command type 00 is for sending data to the parts
+    //
+    // cmd:2 id:7 filler:6 data:>=8
+    // 
+    // 76543210 76543210 76543210 ... 
+    //-------------------------------------------------
+    // cciiiiii i_______ dddddddd ... 
+    //
+    function CMD00(id, data) {
+        id &= 0x7F;
+        var a = [
+            (0 << 6) | (id >> 1),
+            ((id & 1) << 7),
+        ];
+        // console.log("cmd00 typeOf(data)=" + typeof data);
+        if (typeof data == 'number') {
+            a.push(data);
+        }
+        if (typeof data == 'object') {
+            for (var i = 0; i < data.length; i++) {
+                // console.log("pushing '" + data[i] + "' to a");
+                a.push(data[i]);
+            }
+        }
+        //        console.log("CMD00:" + a);
+        return a;
+    }
+
+
+    //
+    // Command type 01 is for creating parts on the screen
     //
     // cmd:2 id:7 dev:5 x:5 y:5 label:64
     // 
     // 76543210 76543210 76543210 76543210 ... 76543210 
     //-------------------------------------------------
     // cciiiiii idddddxx xxxyyyyy llllllll ... llllllll
-    //           ddddd
+    //
     function CMD01(id, type, x, y, label) {
         id &= 0x7F;
         type &= 0x1F;
@@ -48,45 +80,60 @@
         for (var i = 0; i < label.length; i++) {
             a[i + 3] = label.charCodeAt(i);
         }
+        //        console.log("CMD01:" + a);
         return a;
     }
 
+    HandleCmd01(CMD01(0, Max7219.TYPE.MATRIX, 1, 1, "Matrix1"));
+    HandleCmd01(CMD01(1, LED_1, 0, 0, "Led1"));
+    HandleCmd01(CMD01(2, LED_1, 1, 0, "Led2"));
+    HandleCmd01(CMD01(3, Max7219.TYPE.MATRIX, 3, 1, "Matrix2"));
+    HandleCmd01(CMD01(4, Max7219.TYPE.SEGMENT, 0, 3, "Seg1"));
+    HandleCmd01(CMD01(5, Max7219.TYPE.SEGMENT, 0, 4, "Seg2"));
 
-    console.log(CMD01(127, 31, 31, 31, "@ABCDEFGHJIJKLM"));
+    HandleCmd00(CMD00(1, 1));
+    HandleCmd00(CMD00(2, 1));
 
-    // parts.push(new Led(CreatePart(1, "Led1", 0, 0, 1, 1)));
-    // parts.push(new Led(CreatePart(1, "Led2", 1, 0, 1, 1)));
-    // parts.push(new Led(CreatePart(1, "Led3", 2, 0, 1, 1)));
-    // parts.push(new Led(CreatePart(1, "Led4", 3, 0, 1, 1)));
-    // parts[0].state(true);
-    // parts.push(new Max7219(CreatePart(1, "Disp1", 4, 0, 4, 1)));
-    // parts.push(new Max7219(CreatePart(2, "Disp2", 3, 1, 4, 1)));
-    // parts.push(new Max7219(CreatePart(3, "Disp3", 2, 2, 4, 1)));
-    // parts.push(new Max7219(CreatePart(4, "Disp4", 1, 3, 4, 1)));
+    var d = [Max7219.CMD.Shutdown, 1];
+    HandleCmd00(CMD00(0, d));
+    HandleCmd00(CMD00(0, d));
+    HandleCmd00(CMD00(0, d));
+    HandleCmd00(CMD00(0, d));
+    HandleCmd00(CMD00(0));
+    var d = [Max7219.CMD.ScanLimit, 7];
+    HandleCmd00(CMD00(0, d));
+    HandleCmd00(CMD00(0, d));
+    HandleCmd00(CMD00(0, d));
+    HandleCmd00(CMD00(0, d));
+    HandleCmd00(CMD00(0));
+    var d = [Max7219.CMD.Mode, 0xFF];
+    HandleCmd00(CMD00(0, d));
+    HandleCmd00(CMD00(0, d));
+    var d = [Max7219.CMD.Mode, 0x00];
+    HandleCmd00(CMD00(0, d));
+    HandleCmd00(CMD00(0, d));
+    HandleCmd00(CMD00(0));
+    var d = [Max7219.CMD.Intensity, 0x0F];
+    HandleCmd00(CMD00(0, d));
+    HandleCmd00(CMD00(0, d));
+    HandleCmd00(CMD00(0, d));
+    HandleCmd00(CMD00(0, d));
+    HandleCmd00(CMD00(0));
 
-    // for (var i = 0; i < 4; i++) {
-    //     SendToSpiChain(parts, Max7219.Shutdown);
-    //     SendToSpiChain(parts, 1);
-    // }
-    // SendToSpiChain(parts);
-    // for (var i = 0; i < 4; i++) {
-    //     SendToSpiChain(parts, Max7219.ScanLimit);
-    //     SendToSpiChain(parts, 7);
-    // }
-    // SendToSpiChain(parts);
-    // for (var i = 0; i < 4; i++) {
-    //     SendToSpiChain(parts, Max7219.Mode);
-    //     SendToSpiChain(parts, 0xFF);
-    // }
-    // SendToSpiChain(parts);
-    // for (var i = 0; i < 4; i++) {
-    //     SendToSpiChain(parts, Max7219.Intensity);
-    //     SendToSpiChain(parts, 0x0f);
-    // }
-    // SendToSpiChain(parts);
-
-
-    //cmd:2 id:7 dev:5 x:5 y:5 label:64
+    setInterval(
+        function() {
+            for (var i = 0; i < 8; i++) {
+                var d = [Max7219.CMD.Digit0 + i, Math.random() * 10];
+                HandleCmd00(CMD00(0, d));
+                var d = [Max7219.CMD.Digit0 + i, Math.random() * 10];
+                HandleCmd00(CMD00(0, d));
+                var d = [Max7219.CMD.Digit0 + i, Math.random() * 256];
+                HandleCmd00(CMD00(0, d));
+                var d = [Max7219.CMD.Digit0 + i, Math.random() * 256];
+                HandleCmd00(CMD00(0, d));
+                HandleCmd00(CMD00(0));
+            }
+        }, 333);
 </script>
 
 </html>
