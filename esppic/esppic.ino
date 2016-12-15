@@ -60,14 +60,6 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t lenght
 //
 //
 //
-void handleNotFound(){
-  Serial.println("handlNotFound()");
-}
-
-
-//
-//
-//
 void handleFileUpload() {
   char tmps[30];
   static uint32 bytesSoFar=0;
@@ -82,9 +74,9 @@ void handleFileUpload() {
     sprintf(tmps,"s%d/%d bytes uploaded",bytesSoFar,upload.totalSize);
     webSocket.sendTXT(wsNum, tmps);
     webSocket.sendTXT(wsNum, "pUploading file");
-    filename = "/payloads/"+filename;
-    Serial.print("Uploading file "); 
-    Serial.println(filename);
+    if (filename.endsWith(".hex")) filename = "/hex/"+filename;
+    else filename="/"+filename;
+    Serial.printf("Receiving file %s\n",filename.c_str()); 
     fsUploadFile = SPIFFS.open(filename, "w");
   }
   else if(upload.status == UPLOAD_FILE_WRITE){
@@ -103,11 +95,52 @@ void handleFileUpload() {
   }
 }
 
+String getContentType(String filename){
+  if(server.hasArg("download")) return "application/octet-stream";
+  else if(filename.endsWith(".htm")) return "text/html";
+  else if(filename.endsWith(".html")) return "text/html";
+  else if(filename.endsWith(".css")) return "text/css";
+  else if(filename.endsWith(".js")) return "application/javascript";
+  else if(filename.endsWith(".png")) return "image/png";
+  else if(filename.endsWith(".gif")) return "image/gif";
+  else if(filename.endsWith(".jpg")) return "image/jpeg";
+  else if(filename.endsWith(".ico")) return "image/x-icon";
+  else if(filename.endsWith(".xml")) return "text/xml";
+  else if(filename.endsWith(".pdf")) return "application/x-pdf";
+  else if(filename.endsWith(".zip")) return "application/x-zip";
+  else if(filename.endsWith(".gz")) return "application/x-gzip";
+  return "text/plain";
+}
+
+bool handleFileRead(String path){
+  Serial.printf("handleFileRead(%s)\n",path.c_str());
+  if(path.endsWith("/")) path += "index.html";
+  String contentType = getContentType(path);
+  // String pathWithGz = path + ".gz";
+  // if(SPIFFS.exists(pathWithGz) || SPIFFS.exists(path)){
+  //   if(SPIFFS.exists(pathWithGz)) path += ".gz";
+  //   Serial.printf("handleFileRead(%s)\n",path.c_str());
+  uint32_t t1=millis();
+    File file = SPIFFS.open(path, "r");
+    uint32_t si=file.size();
+  uint32_t t2=millis();
+    size_t sent = server.streamFile(file, contentType);
+  uint32_t t3=millis();
+    file.close();
+  uint32_t t4=millis();
+    Serial.printf("%s (%ld bytes) Open:%ld Stream:%ld Close:%ld\n",
+                  path.c_str(),si,t2-t1, t3-t2, t3-t4);
+    return true;
+  // }
+  // return false;
+}
+
+
+
+// Trampoline function
 void funcSendContent(String s) {
   server.sendContent(String(s));
 }
-
- 
 
 //
 // Setup pins and start the serial comms for debugging
@@ -127,7 +160,7 @@ void setup() {
   webSocket.begin();
   webSocket.onEvent(webSocketEvent);
     
-  server.on("/", HTTP_GET, []() {
+  server.on("/i.html", HTTP_GET, []() {
     Serial.println("HTTP_GET /");
     server.send_P(200,"text/html", index_html);
   });
@@ -147,11 +180,52 @@ void setup() {
     server.send_P(200, "image/png", logo_png, sizeof(logo_png));
   });
 
+  server.on("/fm", HTTP_GET, []() {
+    server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+    server.send(200, "text/html","");
+    server.sendContent(String("<h1>File Manager</h1><samp>"));
+  
+    // Delete is done before directory listing
+    if (server.args()>0) {
+      if (server.argName(0)=="d") {
+        SPIFFS.remove(server.arg(0));
+        server.sendContent("<h3>Deleted "+server.arg(0)+"</h3>");
+      }
+    }
+
+    Dir dir = SPIFFS.openDir("/");
+    while (dir.next()) {
+      String str="<a href='/fm?d="+dir.fileName()+"'>delete</a> ";
+      str += "<a href='/fm?p="+dir.fileName()+"'>show</a> ";
+      str += dir.fileName();
+      str += " (";
+      str += dir.fileSize();
+      str += " bytes)<br>";
+      server.sendContent(str);
+    }
+
+    server.sendContent(String("</samp>"));
+
+    // Printing the contents of file is done after directory listing
+    if (server.args()>0) {
+      if (server.argName(0)=="p") {
+        server.sendContent("<h3>"+server.arg(0)+"</h3>");
+        String tag="pre";
+        String contentType="";
+        server.sendContent("<"+tag+">");
+        File file = SPIFFS.open(server.arg(0), "r");
+        server.streamFile(file, contentType);
+        file.close();
+        server.sendContent("</"+tag+">");
+      }
+    }
+
+    server.client().stop();
+  });
+
   server.on("/readconfigs", HTTP_GET, []() {
     Serial.println("HTTP_GET /readconfig");
-
     char tmps[1000];
-
     server.setContentLength(CONTENT_LENGTH_UNKNOWN);
     server.send(200, "text/html","");
     server.sendContent(String("<h1>MEMORY DUMP</h1><samp>"));
@@ -160,18 +234,20 @@ void setup() {
     server.client().stop();
   });
 
+
   server.on("/flash", HTTP_GET, []() {
     Serial.println("HTTP_GET /flash");
     PicFlash(filename);
-
     char *html=(char *)malloc(10000);
     strcpy(html,"<h1>FLASH DONE</h1><a href=\"/\">Back</a>");
     server.send(200, "text/html", html);
     free(html);
   });
 
-  
-  server.onNotFound(handleNotFound);
+  server.onNotFound([](){
+    if(!handleFileRead(server.uri()))
+      server.send(404, "text/plain", "FileNotFound");
+  });  
 }
 
 

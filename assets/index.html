@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>ESPPIC - Upload file</title>
+    <link rel="stylesheet" type="text/css" href="main.css" />
+    <script src="/winsocket.js"></script>
+</head>
+
+<body>
+    <header>
+        <!-- https://varvy.com/tools/base64/up.php -->
+        <img alt="Logo" src="/logo.png">
+        <!-- http://www.flaticon.com/packs/audio-and-video-controls -->
+        <span class="labu">
+        <button onclick="connection.send('RH');">
+        <img alt="Run" src="/run.png">
+        </button>
+        <label>Run</label>
+        </span>
+
+        <span class="labu">
+        <button onclick="connection.send('RL');">
+        <img alt="Halt" src="/halt.png">
+        </button>
+        <label>Halt</label>
+        </span>
+
+        <span class="labu">
+        <button onclick="connection.send('RP');">
+        <img alt="Reset" src="/reset.png">
+        </button>
+        <label>Reset</label>
+        </span>
+
+        <span class="labu">
+        <button onclick="connection.send('DL');">
+        <img alt="Download" src="/download.png">
+        </button>
+        <label>Download</label>
+        </span>
+
+        <span class="labu">
+        <button onclick="connection.send('FL');">
+        <img alt="Flash" src="/flash.png">
+        </button>
+        <label>Flash</label>
+        </span>
+
+        <span class="labu">
+        <select name="device ">
+        <option value="16F1705 " selected>PIC16F1705</option>
+        </select>
+        <label>Select device</label>
+        </span>
+    </header>
+
+    <div style="overflow:auto; margin-top:10px;">
+        <div class="dropzone">
+            <img id="dropzone" alt="Dropzone" src="dropzone.png">
+            <p>Drop .hex here</p>
+        </div>
+        <div class="block">
+            <label>Filename:</label>
+            <span id="v_filename">...</span>
+        </div>
+        <div class="block">
+            <label>Size:</label>
+            <span id="v_size">...</span>
+        </div>
+        <div class="block">
+            <label>Status:</label>
+            <span id="v_status">...</span>
+        </div>
+    </div>
+
+    <div id="config1" class="config">
+        <h4 id="config1hex">CONFIG1 0x----</h4>
+        <label id="config1bits">- - - - - - - - - - - - - -</label><br>
+        <label>| | | | | | | | | | | | | |</label><br>
+        <label>| | | | | | | | | | | | | +</label><label id="cfl1_0">––</label><span id="cfg1_0"></span><br>
+        <label>| | | | | | | | | | | | +––</label><label id="cfl1_1">––</label><span id="cfg1_1"></span><br>
+        <label>| | | | | | | | | | | +––––</label><label id="cfl1_2">––</label><span id="cfg1_2"></span><br>
+        <label>| | | | | | | | | | +––––––</label><label id="cfl1_3">––</label><span id="cfg1_3"></span><br>
+        <label>| | | | | | | | | +––––––––</label><label id="cfl1_4">––</label><span id="cfg1_4"></span><br>
+        <label>| | | | | | | | +––––––––––</label><label id="cfl1_5">––</label><span id="cfg1_5"></span><br>
+        <label>| | | | | | | +––––––––––––</label><label id="cfl1_6">––</label><span id="cfg1_6"></span><br>
+        <label>| | | | | | +––––––––––––––</label><label id="cfl1_7">––</label><span id="cfg1_7"></span><br>
+        <label>| | | | | +––––––––––––––––</label><label id="cfl1_8">––</label><span id="cfg1_8"></span><br>
+        <label>| | | | +––––––––––––––––––</label><label id="cfl1_9">––</label><span id="cfg1_9"></span><br>
+        <label>| | | +––––––––––––––––––––</label><label id="cfl1_10">––</label><span id="cfg1_10"></span><br>
+        <label>| | +––––––––––––––––––––––</label><label id="cfl1_11">––</label><span id="cfg1_11"></span><br>
+        <label>| +––––––––––––––––––––––––</label><label id="cfl1_12">––</label><span id="cfg1_12"></span><br>
+        <label>+––––––––––––––––––––––––––</label><label id="cfl1_13">––</label><span id="cfg1_13"></span><br>
+    </div>
+
+    <div id="config2" class="config">
+        <h4 id="config2hex">CONFIG2 0x----</h4>
+        <label id="config2bits">- - - - - - - - - - - - - -</label><br>
+        <label>| | | | | | | | | | | | | |</label><br>
+        <label>| | | | | | | | | | | | | +</label><label id="cfl2_0">––</label><span id="cfg2_0"></span><br>
+        <label>| | | | | | | | | | | | +––</label><label id="cfl2_1">––</label><span id="cfg2_1"></span><br>
+        <label>| | | | | | | | | | | +––––</label><label id="cfl2_2">––</label><span id="cfg2_2"></span><br>
+        <label>| | | | | | | | | | +––––––</label><label id="cfl2_3">––</label><span id="cfg2_3"></span><br>
+        <label>| | | | | | | | | +––––––––</label><label id="cfl2_4">––</label><span id="cfg2_4"></span><br>
+        <label>| | | | | | | | +––––––––––</label><label id="cfl2_5">––</label><span id="cfg2_5"></span><br>
+        <label>| | | | | | | +––––––––––––</label><label id="cfl2_6">––</label><span id="cfg2_6"></span><br>
+        <label>| | | | | | +––––––––––––––</label><label id="cfl2_7">––</label><span id="cfg2_7"></span><br>
+        <label>| | | | | +––––––––––––––––</label><label id="cfl2_8">––</label><span id="cfg2_8"></span><br>
+        <label>| | | | +––––––––––––––––––</label><label id="cfl2_9">––</label><span id="cfg2_9"></span><br>
+        <label>| | | +––––––––––––––––––––</label><label id="cfl2_10">––</label><span id="cfg2_10"></span><br>
+        <label>| | +––––––––––––––––––––––</label><label id="cfl2_11">––</label><span id="cfg2_11"></span><br>
+        <label>| +––––––––––––––––––––––––</label><label id="cfl2_12">––</label><span id="cfg2_12"></span><br>
+        <label>+––––––––––––––––––––––––––</label><label id="cfl2_13">––</label><span id="cfg2_13"></span><br>
+    </div>
+    <div style="clear:both;"></div>
+    <br/>
+
+    <a href="/readconfigs">Read config areas</a>
+    <br/>
+    <a href="/flash">Flash</a><br/>
+</body>
+
+<script src="/dragupload.js"></script>
+<script src="/configinfo.js"></script>
+
+</html>

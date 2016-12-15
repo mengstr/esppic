@@ -1,0 +1,94 @@
+body {
+    background-color: darkslategrey;
+    font-family: sans-serif;
+    color: #ffffff;
+}
+
+header img {
+    vertical-align: top;
+}
+
+a {
+    color: #8080ff;
+}
+
+.labu {
+    display: inline-block;
+    text-align: center;
+}
+
+.labu label {
+    display: block;
+    font-size: 60%;
+}
+
+.labu button {
+    height: 40px;
+}
+
+.labu select {
+    height: 40px;
+}
+
+.dropzone {
+    position: relative;
+    border: 2px dotted #ccc;
+    width: 150px;
+    height: 150px;
+    margin: 0px 10px 10px 10px;
+    padding: 25px 10px 10px 10px;
+    float: left;
+    border-radius: 20px;
+}
+
+.dropzone img {
+    width: 100%;
+    height: 100%;
+}
+
+.dropzone p {
+    position: relative;
+    text-align: center;
+    margin: -178px 0 0 0;
+    color: red;
+    font-size: 18px;
+}
+
+#dropzone.hover {
+    border: 2px dashed #0c0;
+    filter: hue-rotate(180deg);
+    -webkit-filter: hue-rotate(180deg);
+}
+
+.block label {
+    display: inline-block;
+    width: 80px;
+    text-align: right;
+}
+
+.config {
+    float: left;
+    font-size: 10px;
+    line-height: 90%;
+}
+
+.config h4 {
+    margin: 0 0 10px 0;
+    padding: 0;
+    font-size: 120%;
+}
+
+.config label {
+    font-family: monospace;
+    color: white;
+}
+
+.config span {
+    display: inline-block;
+    width: 200px;
+    margin-left: 3px;
+    font-size: 85%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
