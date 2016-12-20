@@ -53,7 +53,7 @@ void EnterLVPmode() {
   CLK_LOW;
   DAT_LOW;
   delayMicroseconds(500);
-  RESET_LOW;
+  RESET_LOW();
   delayMicroseconds(500);
   Send(0b01010000,8); // P
   Send(0b01001000,8); // H

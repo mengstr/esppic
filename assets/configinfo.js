@@ -173,7 +173,7 @@ var configSpec = [
     { no: 1, bs: 11, be: 11, na: "/CLKOUTEN" },
     { no: 1, bs: 10, be: 9, na: "BOREN" },
     { no: 1, bs: 8, be: 8, na: "1" },
-    { no: 1, bs: 7, be: 6, na: "CP" },
+    { no: 1, bs: 7, be: 7, na: "CP" },
     { no: 1, bs: 6, be: 6, na: "MCLRE" },
     { no: 1, bs: 5, be: 5, na: "PWRTE" },
     { no: 1, bs: 4, be: 3, na: "WDTE" },
