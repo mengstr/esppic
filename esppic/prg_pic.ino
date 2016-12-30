@@ -17,14 +17,18 @@
 #define PIN_CLK   D2
 
 #define DAT_INPUT   pinMode(PIN_DAT, INPUT);
-#define DAT_OUT     pinMode(PIN_DAT, OUTPUT);
+#define DAT_OUTPUT  pinMode(PIN_DAT, OUTPUT);
 #define DAT_LOW     digitalWrite(PIN_DAT,   LOW)
 #define DAT_HIGH    digitalWrite(PIN_DAT,   HIGH)
 #define DAT_GET     digitalRead(PIN_DAT)
 
+#define CLK_INPUT   pinMode(PIN_CLK, INPUT);
+#define CLK_OUTPUT  pinMode(PIN_CLK, OUTPUT);
 #define CLK_LOW     digitalWrite(PIN_CLK,   LOW)
 #define CLK_HIGH    digitalWrite(PIN_CLK,   HIGH)
 
+#define RESET_INPUT  pinMode(PIN_RESET, INPUT);
+#define RESET_OUTPUT pinMode(PIN_RESET, OUTPUT);
 void RESET_LOW(){   digitalWrite(PIN_RESET, LOW);}
 void RESET_HIGH(){  digitalWrite(PIN_RESET, HIGH);}
 
@@ -36,12 +40,15 @@ uint16_t currentAddress;
 //
 //
 void PicSetup() {
-  pinMode(PIN_RESET, OUTPUT);
-  pinMode(PIN_DAT,   OUTPUT);
-  pinMode(PIN_CLK,   OUTPUT);
+  RESET_OUTPUT;
+  DAT_INPUT;
+  CLK_INPUT;
+  // pinMode(PIN_RESET, OUTPUT);
+  // pinMode(PIN_DAT,   OUTPUT);
+  // pinMode(PIN_CLK,   OUTPUT);
   RESET_HIGH();
-  DAT_LOW;
-  CLK_LOW;
+  // DAT_LOW;
+  // CLK_LOW;
 }
 
 
@@ -50,6 +57,8 @@ void PicSetup() {
 // mode as long as the RESET line is kept low.
 //
 void EnterLVPmode() {
+  DAT_OUTPUT;
+  CLK_OUTPUT;
   CLK_LOW;
   DAT_LOW;
   delayMicroseconds(500);
@@ -69,7 +78,7 @@ void EnterLVPmode() {
 // specifies how many bits to be sent.
 //
 void Send(uint16_t data, uint8_t bits) {
-  DAT_OUT;
+  DAT_OUTPUT;
   delayMicroseconds(DLY1);
   for (uint8_t i=0; i<bits; i++) {
     if (data&0x01) {
@@ -236,8 +245,8 @@ void DumpConfig(void (*f)(const String)) {
 //
 // Flash one word of data into the specified location on the PIC
 //
-void Store(uint16_t address, uint16_t data) {
-  Serial.printf("0x%04X:0x%04X\n",address,data);
+void Store(uint32_t address, uint16_t data) {
+  Serial.printf("Store(address:0x%08X, data:0x%04X\n",address,data);
   if (address<currentAddress) CmdResetAddress();
   while (address>currentAddress) CmdIncAddress();
   Send(0x02,6); 
@@ -253,6 +262,8 @@ void Store(uint16_t address, uint16_t data) {
 //
 //
 void PicFlash(String filename) {
+    int num=0;
+    int cnt=0;
     EnterLVPmode();
     CmdResetAddress();
     CmdLoadConfig(0x00);
@@ -269,9 +280,13 @@ void PicFlash(String filename) {
     Serial.println(filename);
     File f = SPIFFS.open(filename, "r");
     if (!f) {
+      webSocket.sendTXT(num, "pFile error");
       Serial.print("Couldn't open ");
       Serial.println(filename);
+      return;
     }
+    webSocket.sendTXT(num, "pFlashing...");
+    uint16_t offset;
     while(f.available()) {
       uint8_t d_len;
       uint16_t d_addr;
@@ -283,14 +298,30 @@ void PicFlash(String filename) {
       d_typ=HexDec2(s[7],s[8]);
       Serial.printf("len=%02x addres=%04x type=%02x\n",d_len,d_addr,d_typ);
       if (d_typ==0x00) {
-        for (uint8_t i=0; i<d_len*2; i+=4) {              
-          Store(d_addr/2+i/4,HexDec4(s[11+i],s[12+i],s[9+i],s[10+i]));
+        for (uint8_t i=0; i<d_len*2; i+=4) {
+          uint32_t address=d_addr/2+i/4;
+          uint16_t data=HexDec4(s[11+i],s[12+i],s[9+i],s[10+i]);
+          if (offset==0) {
+            cnt++;
+            Store(address,data);
+          } else {
+
+          }
         }
+      }
+      if (d_typ==0x04) {
+        offset=HexDec4(s[11],s[12],s[9],s[10]);
+        Serial.printf("Offset=%04x\n",offset);
       }
     }
     f.close();
-  
+    char tmps[20];
+    sprintf(tmps,"pTotal %d bytes flashed",cnt);
+    webSocket.sendTXT(num, tmps);
+
     RESET_HIGH();
+    DAT_INPUT;
+    CLK_INPUT;
 }
 
 
@@ -304,6 +335,8 @@ void PicReadConfigs(void (*f)(const String)) {
     f("<br />");
     DumpMemory(f);
     RESET_HIGH();
+    DAT_INPUT;
+    CLK_INPUT;
 }
 
 

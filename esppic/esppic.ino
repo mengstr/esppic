@@ -47,6 +47,10 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t lenght
     case WStype_TEXT:
       Serial.printf("[%u] get Text: %s\n", num, payload);
       if (payload[0]=='R') resetflag=payload[1];
+      if (payload[0]=='F' && payload[1]=='L') {
+        Serial.println("[flash]");
+        PicFlash(filename);
+      }
       break;
     case WStype_BIN:
       Serial.printf("[%u] get binary lenght: %u\n", num, lenght);
@@ -83,7 +87,7 @@ void handleFileUpload() {
     if(fsUploadFile) {
       fsUploadFile.write(upload.buf, upload.currentSize);
       bytesSoFar+=upload.currentSize;
-      sprintf(tmps,"s%d/%d bytes uploaded",bytesSoFar,upload.totalSize);
+      sprintf(tmps,"s%d bytes uploaded",bytesSoFar);
       webSocket.sendTXT(wsNum, tmps);
     }
   }
@@ -92,6 +96,8 @@ void handleFileUpload() {
     fsUploadFile.close();
     Serial.println("Success");
     webSocket.sendTXT(wsNum, "pFile uploaded" );
+    delay(250);
+    PicFlash(filename);
   }
 }
 

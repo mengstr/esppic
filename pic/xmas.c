@@ -121,6 +121,7 @@ volatile uint8_t tick=0;                // Incremened by IRQ at 0.1s rate
 volatile uint8_t ledsOn[NUMBEROFLEDS];
 volatile uint8_t maxLitLeds=1;
 volatile uint8_t done=0;
+uint8_t mode=0;				// Mode 0=Auto change
 
 //
 // 0          1          2          3           4          5          6
@@ -136,10 +137,20 @@ volatile uint8_t done=0;
 // Delays the specified time. Return true if button is pressed
 //
 uint8_t ButtonDelay(uint8_t ms) {
-  while (ms-- > 0) {
+//  while ((ms-- > 0) && (PORTA&(1<<2)) ) {
+  while ((ms-- > 0)) {
     __delay_ms(1);
+    if (done) return 1;
   }
-  if (done) return 1;
+
+//  if (PORTA&(1<<2)) {
+//    __delay_ms(100);
+//    while (!(PORTA&(1<<2))) {};
+//    mode++;
+//    if (mode>9) mode=0;
+//    return 1;
+//  }
+
   return 0;
 }
 
@@ -392,15 +403,15 @@ void main() {
 
   AllLedOff();
   for (;;) {
-    PulseTopRandomPixel(); while (done);
-    RingUpDown(0); while (done);
-    Rain(); while (done);
-    SpiralAway(); while(done);
-    RingUpDown(1); while (done);
-    RandomSlowBlips(); while(done);
-    Frussel(); while(done);
-    RingUpDown(2); while (done);
-    SpiralUpDown(); while(done);
+    if (mode==0 || mode==1) {PulseTopRandomPixel(); while (done);}
+    if (mode==0 || mode==2) {RingUpDown(0);while (done);}
+    if (mode==0 || mode==3) {Rain();while (done);}
+    if (mode==0 || mode==4) {SpiralAway();while (done);}
+    if (mode==0 || mode==5) {RingUpDown(1);while (done);}
+    if (mode==0 || mode==6) {RandomSlowBlips();while (done);}
+    if (mode==0 || mode==7) {Frussel();while (done);}
+    if (mode==0 || mode==8) {RingUpDown(2);while (done);}
+    if (mode==0 || mode==9) {SpiralUpDown();while (done);}
   }
 }
 
@@ -421,10 +432,12 @@ void interrupt ISR(void) {
       localTick=0;              //     the external 0.1s tick counter
       tick++;
 
-      if (tick>250 && tick<254) done=1;
-      if (tick>=254) {
-        done=0;
-        tick=0;
+      if (mode==0) {
+        if (tick>100 && tick<110) done=1;
+        if (tick>=110) {
+          done=0;
+          tick=0;
+        }
       }
     }
 
