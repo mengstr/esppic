@@ -21,7 +21,7 @@
 
 ESP8266WebServer server(80);
 WebSocketsServer webSocket = WebSocketsServer(81);
-String filename;
+String uploadFilename;
 File fsUploadFile;
 char resetflag=0;
 uint8_t wsNum;
@@ -49,7 +49,7 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t lenght
       if (payload[0]=='R') resetflag=payload[1];
       if (payload[0]=='F' && payload[1]=='L') {
         Serial.println("[flash]");
-        PicFlash(filename);
+        PicFlash(uploadFilename);
       }
       break;
     case WStype_BIN:
@@ -72,16 +72,16 @@ void handleFileUpload() {
   HTTPUpload& upload = server.upload();
   if(upload.status == UPLOAD_FILE_START){
     bytesSoFar=0;
-    filename = upload.filename;
-    sprintf(tmps,"f%s",filename.c_str());
+    uploadFilename = upload.filename;
+    sprintf(tmps,"f%s",uploadFilename.c_str());
     webSocket.sendTXT(wsNum, tmps);
     sprintf(tmps,"s%d/%d bytes uploaded",bytesSoFar,upload.totalSize);
     webSocket.sendTXT(wsNum, tmps);
     webSocket.sendTXT(wsNum, "pUploading file");
-    if (filename.endsWith(".hex")) filename = "/hex/"+filename;
-    else filename="/"+filename;
-    Serial.printf("Receiving file %s\n",filename.c_str()); 
-    fsUploadFile = SPIFFS.open(filename, "w");
+    if (uploadFilename.endsWith(".hex")) uploadFilename = "/hex/"+uploadFilename;
+    else uploadFilename="/"+uploadFilename;
+    Serial.printf("Receiving file %s\n",uploadFilename.c_str()); 
+    fsUploadFile = SPIFFS.open(uploadFilename, "w");
   }
   else if(upload.status == UPLOAD_FILE_WRITE){
     if(fsUploadFile) {
@@ -97,7 +97,7 @@ void handleFileUpload() {
     Serial.println("Success");
     webSocket.sendTXT(wsNum, "pFile uploaded" );
     delay(250);
-    PicFlash(filename);
+    PicFlash(uploadFilename);
   }
 }
 
@@ -243,7 +243,7 @@ void setup() {
 
   server.on("/flash", HTTP_GET, []() {
     Serial.println("HTTP_GET /flash");
-    PicFlash(filename);
+    PicFlash(uploadFilename);
     char *html=(char *)malloc(10000);
     strcpy(html,"<h1>FLASH DONE</h1><a href=\"/\">Back</a>");
     server.send(200, "text/html", html);
