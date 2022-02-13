@@ -65,11 +65,6 @@ void ConnectToWifi() {
         content += "</html>";
         server.send(200, "text/html", content);  
   });
-  server.begin();
-  while (1) {
-    server.handleClient();
-    delay(1);
-  }
 }
 
 
